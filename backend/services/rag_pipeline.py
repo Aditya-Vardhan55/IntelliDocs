@@ -1,7 +1,7 @@
 import structlog
 from langchain_ollama import OllamaLLM
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_community.vectorstores import Chroma
+from langchain_chroma import Chroma
 from langchain_classic.chains.retrieval_qa.base import RetrievalQA
 from langchain_classic.schema import Document
 
@@ -110,6 +110,8 @@ def query_document(question: str, domain_str: str) -> dict:
         collection_name=f"intellidocs_{domain.value}"
     )
     
+    retriever = vectorstore.as_retriever(search_kwargs={"k": 4})
+    
     llm = OllamaLLM(
         base_url=settings.ollama_base_url,
         model=settings.ollama_model
@@ -120,9 +122,7 @@ def query_document(question: str, domain_str: str) -> dict:
     qa_chain = RetrievalQA.from_chain_type(
         llm=llm,
         chain_type="stuff",
-        retriever=vectorstore.as_retriever(
-            search_kwargs={"k": 4}
-        ),
+        retriever=retriever,
         chain_type_kwargs={"prompt": prompt},
         return_source_documents=True
     )

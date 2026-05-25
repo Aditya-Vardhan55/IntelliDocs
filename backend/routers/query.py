@@ -12,7 +12,7 @@ class QueryRequest(BaseModel):
     domain: str     # legal, medical, corporate, code
 
 @router.post("/query")
-async def query_document(request: QueryRequest):
+async def query(request: QueryRequest):
     valid_domains = ["legal", "medical", "corporate", "code"]
     
     if request.domain not in valid_domains:
@@ -23,8 +23,8 @@ async def query_document(request: QueryRequest):
         
     try:
         result = query_document(
-            question=request.question,
-            domain_str=request.domain
+            request.question,
+            request.domain
         )
         return {
             "status": "success",
