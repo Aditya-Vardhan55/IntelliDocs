@@ -2,6 +2,16 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from backend.config import get_settings
 import structlog
 
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+hf_token = os.getenv("HF_TOKEN", "")
+if hf_token:
+    os.environ["HUGGINGFACE_HUB_TOKEN"] = hf_token
+    os.environ["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1"
+
 logger = structlog.get_logger()
 settings = get_settings()
 

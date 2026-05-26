@@ -30,6 +30,10 @@ class Settings(BaseSettings):
     aws_secret_access_key: str = ""
     s3_bucket_name: str = "intellidocs-docs"
     
+    # HF
+    hf_token: str = ""
+    hf_hub_disable_symlinks_warning: str = "1"
+    
     # App
     app_env: str = "development"
     log_level: str = "INFO"
