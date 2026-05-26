@@ -2,10 +2,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from prometheus_fastapi_instrumentator import Instrumentator
 import structlog
-import logging
 
 from backend.routers import health, upload, query
 from backend.config import get_settings
+from llmops.langsmith_config import setup_langsmith
+from mlops.mlflow_tracker import setup_mlflow
 
 structlog.configure(
     processors=[
@@ -45,6 +46,14 @@ app.include_router(query.router, prefix="/api/v1", tags=["Query"])
 @app.on_event("startup")
 async def startup_event():
     logger.info("intellidocs_starting", env=settings.app_env)
+    
+    # Initialize Langsmith tracing
+    langsmith_enabled = setup_langsmith()
+    logger.info("langsmith_status", enabled=langsmith_enabled)
+    
+    # Initialize MLflow tracking
+    setup_mlflow()
+    logger.info("mlflow_status", uri=settings.mlflow_tracking_uri)
     
 @app.on_event("shutdown")
 async def shutdown_event():
