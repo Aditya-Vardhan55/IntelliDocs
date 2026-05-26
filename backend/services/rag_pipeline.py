@@ -1,3 +1,4 @@
+import time
 import structlog
 from langchain_ollama import OllamaLLM
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -12,6 +13,7 @@ from backend.prompts.medical import MEDICAL_PROMPT
 from backend.prompts.corporate import CORPORATE_PROMPT
 from backend.prompts.code import CODE_PROMPT
 from backend.config import get_settings
+from mlops.mlflow_tracker import log_document_processing, log_query
 
 logger = structlog.get_logger()
 settings = get_settings()
@@ -42,6 +44,7 @@ def process_document(text: str, filename: str) -> dict:
     3. Embed and store in ChromaDB
     Returns metadata about the processed document
     """
+    start_time = time.time()
     logger.info("processing_document", filename=filename)
     
     # Step 1 - detect domain
@@ -80,7 +83,18 @@ def process_document(text: str, filename: str) -> dict:
         persist_directory=".chromadb",
         collection_name=f"intellidocs_{domain.value}"
     )
-    vectorstore.persist()
+    
+    processing_time = time.time() - start_time
+    
+    # Step 4 - log to MLflow
+    log_document_processing(
+        filename=filename,
+        domain=domain.value,
+        chunk_size=strategy["chunk_size"],
+        chunk_overlap=strategy["chunk_overlap"],
+        num_chunks=len(chunks),
+        processing_time=processing_time
+    )
     
     logger.info("document_stored",
                 collection=f"intellidocs_{domain.value}",
@@ -91,7 +105,8 @@ def process_document(text: str, filename: str) -> dict:
         "domain": domain.value,
         "num_chunks": len(chunks),
         "chunk_size": strategy["chunk_size"],
-        "chunk_overlap": strategy["chunk_overlap"]
+        "chunk_overlap": strategy["chunk_overlap"],
+        "processing_time_seconds": round(processing_time, 3)
     }
     
 def query_document(question: str, domain_str: str) -> dict:
@@ -99,6 +114,7 @@ def query_document(question: str, domain_str: str) -> dict:
     Query the vectorstore and return an answer
     using the domain-specific prompt template
     """
+    start_time = time.time()
     logger.info("querying_document", question=question, domain=domain_str)
     
     domain = Domain(domain_str)
@@ -128,6 +144,15 @@ def query_document(question: str, domain_str: str) -> dict:
     )
     
     result = qa_chain.invoke({"query": question})
+    response_time = time.time() - start_time
+    
+    # Log query metrics to MLflow
+    log_query(
+        question=question,
+        domain=domain_str,
+        response_time=response_time,
+        num_source_chunks=len(result["source_documents"])
+    )
     
     logger.info("query_complete",
                 question=question,
@@ -137,5 +162,6 @@ def query_document(question: str, domain_str: str) -> dict:
     return {
         "answer": result["result"],
         "domain": domain_str,
-        "source_chunks": len(result["source_documents"])
+        "source_chunks": len(result["source_documents"]),
+        "response_time_seconds": round(response_time, 3)
     }
