@@ -8,6 +8,7 @@ from langchain_classic.schema import Document
 
 from backend.services.embeddings import get_embedding_model
 from backend.services.domain_router import detect_domain, Domain
+from backend.services.cache import get_cached_response, set_cached_response
 from backend.prompts.legal import LEGAL_PROMPT
 from backend.prompts.medical import MEDICAL_PROMPT
 from backend.prompts.corporate import CORPORATE_PROMPT
@@ -111,12 +112,24 @@ def process_document(text: str, filename: str) -> dict:
     
 def query_document(question: str, domain_str: str) -> dict:
     """
-    Query the vectorstore and return an answer
-    using the domain-specific prompt template
+    Query Pipeline with Caching:
+    1. Check Redis first- if hit, return instantly
+    2. If miss - run full RAG pipeline
+    3. Store result in Redis for next time
+    4. Log everything to MLflow
     """
     start_time = time.time()
     logger.info("querying_document", question=question, domain=domain_str)
     
+    # Step 1 - Check cache first
+    cached = get_cached_response(question, domain_str)
+    if cached:
+        cached["cache_hit"] = True
+        cached["response_time_seconds"] = round(time.time() - start_time, 3)
+        logger.info("returning_cache_response", question=question)
+        return cached
+    
+    # Step 2 - Cache miss, run full pipeline
     domain = Domain(domain_str)
     embeddings = get_embedding_model()
     
@@ -146,7 +159,18 @@ def query_document(question: str, domain_str: str) -> dict:
     result = qa_chain.invoke({"query": question})
     response_time = time.time() - start_time
     
-    # Log query metrics to MLflow
+    response = {
+        "answer": result["result"],
+        "domain": domain_str,
+        "source_chunks": len(result["source_documents"]),
+        "response_time_seconds": round(response_time, 3),
+        "cache_hit": False
+    }
+    
+    # Step 3 - store in Redis for next time
+    set_cached_response(question, domain_str, response)
+    
+    # Step 4 - Log query metrics to MLflow
     log_query(
         question=question,
         domain=domain_str,
@@ -157,11 +181,6 @@ def query_document(question: str, domain_str: str) -> dict:
     logger.info("query_complete",
                 question=question,
                 domain=domain_str,
-                num_source_docs=len(result["source_documents"]))
+                response_time=response_time)
     
-    return {
-        "answer": result["result"],
-        "domain": domain_str,
-        "source_chunks": len(result["source_documents"]),
-        "response_time_seconds": round(response_time, 3)
-    }
+    return response
