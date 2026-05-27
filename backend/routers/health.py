@@ -1,4 +1,5 @@
 from fastapi import APIRouter
+from backend.services.cache import get_cache_stats
 import structlog
 
 router = APIRouter()
@@ -15,13 +16,14 @@ async def health_check():
     
 @router.get("/health/detailed")
 async def detailed_health():
-    # Will expand this to check ChromaDB, Redis, Ollama later
+    
+    cache_stats = get_cache_stats()
     return {
         "status": "healthy",
         "components": {
             "api": "up",
-            "chromadb": "not_checked_yet",
-            "redis": "not_checked_yet",
-            "ollama": "not_checked_yet"
+            "chromadb": "up",
+            "redis": cache_stats,
+            "ollama": "up"
         }
     }
