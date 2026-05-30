@@ -1,0 +1,11 @@
+venv/
+__pycache__/
+.chromadb/
+.model_cache/
+*.pyc
+*.pyo
+.git/
+.gitignore
+*.md
+tests/
+.env.example
