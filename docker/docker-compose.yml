@@ -1,0 +1,107 @@
+# Shared network — all containers talk to each other by service name
+networks:
+  intellidocs-network:
+    driver: bridge
+    name: intellidocs-network
+
+# Persistent storage — data survives container restarts
+volumes:
+  chromadb-data:
+  mlflow-data:
+  redis-data:
+  ollama-data:
+  model-cache:
+
+services:
+
+  # ── Ollama — Local LLM ─────────────────────────────────
+  ollama:
+    image: ollama/ollama:latest
+    container_name: intellidocs-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    networks:
+      - intellidocs-network
+    restart: unless-stopped
+    # Pull llama3.2 automatically on first start
+    entrypoint: ["/bin/sh", "-c", "ollama serve & sleep 5 && ollama pull llama3.2 && wait"]
+
+  # ── Redis — Caching ────────────────────────────────────
+  redis:
+    image: redis:alpine
+    container_name: intellidocs-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - intellidocs-network
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+
+  # ── MLflow — Experiment Tracking ───────────────────────
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:latest
+    container_name: intellidocs-mlflow
+    ports:
+      - "5000:5000"
+    volumes:
+      - mlflow-data:/mlflow
+    networks:
+      - intellidocs-network
+    restart: unless-stopped
+    # environment:
+    #   - MLFLOW_SERVER_ALLOWED_HOSTS=*
+    #   - MLFLOW_SERVER_CORS_ALLOWED_ORIGINS=*
+    #   - MLFLOW_SERVER_DISABLE_SECURITY_MIIDDLEWARE=true
+    command: >
+             mlflow server
+             --host 0.0.0.0
+             --port 5000
+             --backend-store-uri /mlflow/mlflow.db
+             --default-artifact-root /mlflow/artifacts
+             --disable-security-middleware
+
+  # ── FastAPI Backend ────────────────────────────────────
+  backend:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.backend
+    container_name: intellidocs-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - chromadb-data:/app/.chromadb
+      - model-cache:/app/.model_cache
+    environment:
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+    networks:
+      - intellidocs-network
+    # Wait for Redis and Ollama to be ready first
+    depends_on:
+      - mlflow
+      - redis
+      - ollama
+    restart: unless-stopped
+    
+
+  # ── Streamlit Frontend ─────────────────────────────────
+  frontend:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.frontend
+    container_name: intellidocs-frontend
+    ports:
+      - "8501:8501"
+    environment:
+      - API_BASE=http://backend:8000/api/v1
+    networks:
+      - intellidocs-network
+    restart: unless-stopped
+    depends_on:
+      - backend
