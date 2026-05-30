@@ -1,8 +1,9 @@
 import streamlit as st
 import requests
 import json
+import os
 
-API_BASE = "http://localhost:8000/api/v1"
+API_BASE = os.getenv("API_BASE", "http://localhost:8000/api/v1")
 
 # ─────── Page Config ──────────────────────
 st.set_page_config(
