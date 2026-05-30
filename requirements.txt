@@ -35,3 +35,6 @@ streamlit
 # Testing
 pytest
 httpx
+
+sentence-transformers
+langchain-chroma
