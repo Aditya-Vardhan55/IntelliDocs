@@ -146,7 +146,7 @@ with right:
                         col1, col2, col3 = st.columns(3)
                         col1.metric("Domain", result["domain"].upper())
                         col2.metric("Sources Used", result["source_chunks"])
-                        col3.metric("Response Time", f"{result['respoonse_time_seconds']}s")
+                        col3.metric("Response Time", f"{result['response_time_seconds']}s")
                         
                     else:
                         st.error(f"Query failed: {response.json()['detail']}")
