@@ -16,7 +16,7 @@ COPY frontend/ ./frontend/
 COPY vectorstore/ ./vectorstore/
 COPY mlops/ ./mlops/
 COPY llmops/ ./llmops/
-COPY .env .env
+# COPY .env .env
 
 EXPOSE 8000
 

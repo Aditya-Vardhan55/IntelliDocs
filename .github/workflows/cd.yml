@@ -30,6 +30,9 @@ jobs:
                 tags: |
                   ${{ secrets.DOCKERHUB_USERNAME }}/intellidocs-backend:latest
                   ${{ secrets.DOCKERHUB_USERNAME }}/intellidocs-backend:${{ github.sha }}
+                build-args: |
+                  LANGCHAIN_API_KEY=${{ secrets.LANGCHAIN_API_KEY }}
+                  HF_TOKEN=${{ secrets.HF_TOKEN }}
                 cache-from: type=gha
                 cache-to: type=gha,mode=max
 
