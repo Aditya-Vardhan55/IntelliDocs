@@ -31,7 +31,14 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Run tests
-        run: PYTHONPATH=, pytest tests/ -v --tb=short
+        env: 
+          PYTHONPATH: ${{ github.workspace }}
+          LANGCHAIN_TRACING_V2: "false"
+          LANGCHAIN_API_KEY: "dummy"
+          OLLAMA_BASE_URL: "http://localhost:11434"
+          REDIS_HOST: "localhost"
+          MLFLOW_TRACKING_URI: "http://localhost:5000"
+        run: pytest tests/ -v --tb=short
 
       - name: Check imports
         run: |
