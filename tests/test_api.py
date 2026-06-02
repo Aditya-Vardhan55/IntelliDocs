@@ -1,7 +1,7 @@
-from fastapi import testclient
+from fastapi import TestClient
 from backend.main import app
 
-client = testclient(app)
+client = TestClient(app)
 
 def test_health_check():
     response = client.get("/api/v1/health")
