@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: intellidocs
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+      - name: frontend
+        image: vardhanaditya04/intellidocs-frontend:latest
+        ports:
+          - containerPort: 8501
+        env:
+          - name: API_BASE
+            value: "http://backend-service:8000/api/v1"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "300m"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-service
+  namespace: intellidocs
+spec:
+  type: NodePort
+  selector:
+    app: frontend
+  ports:
+  - port: 8501
+    targetPort: 8501
+    nodePort: 30001

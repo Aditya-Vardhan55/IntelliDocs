@@ -221,3 +221,4 @@ __marimo__/
 .chromadb/
 .model_cache/
 mlflow.db
+k8s/secrets.yml
