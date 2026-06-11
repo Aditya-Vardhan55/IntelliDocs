@@ -84,24 +84,24 @@ Deployment Layer
 ## Key Design Decisions
 
 **Why domain-specific chunking?**
-Legal documents need large chunks (1000 tokens) -
+- Legal documents need large chunks (1000 tokens) -
 clauses span paragraphs and splitting mid-clause
-destroys meaning. Code needs small chunks (400 tokens)
-- functions are self-contained. This was measured
+destroys meaning. Code needs small chunks (400 tokens) -
+functions are self-contained. This was measured
 and tracked in MLflow.
 
 **Why Ollama over OpenAI?**
-Legal and medical documents cannot leave the machine.
+- Legal and medical documents cannot leave the machine.
 Ollama runs entirely locally - zero data privacy risk,
 zero API cost. Model is swappable via one env var change.
 
 **Why ChromaDB over Pinecone?**
-No external service, no API keys, runs in Docker,
+- No external service, no API keys, runs in Docker,
 persists to disk. For a self-hosted platform this
 is right tradeoff.
 
 **Why Redis caching?**
-HR policy documents get the same questions repeatedly.
+- HR policy documents get the same questions repeatedly.
 Caching eliminates redundant LLM calls. Cache hit
 rate tracked in health endpoint.
 
@@ -195,7 +195,7 @@ intellidocs/
 ## Author
 
 **Aditya Vardhan**
-[LinkedIn](https://www.linkedin.com/in/aditya-vardhan07/)
+> [LinkedIn](https://www.linkedin.com/in/aditya-vardhan07/)
 
 ## License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
